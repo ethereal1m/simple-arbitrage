@@ -6,6 +6,9 @@ import { FACTORY_ADDRESSES } from "./addresses";
 import { Arbitrage } from "./Arbitrage";
 import { get } from "https"
 import { getDefaultRelaySigningKey } from "./utils";
+import "dotenv/config.js";
+//import { promises as fs } from 'fs';
+import * as fs from 'fs';
 
 const ETHEREUM_RPC_URL = process.env.ETHEREUM_RPC_URL || "http://127.0.0.1:8545"
 const PRIVATE_KEY = process.env.PRIVATE_KEY || ""
@@ -28,6 +31,7 @@ if (FLASHBOTS_RELAY_SIGNING_KEY === "") {
   console.warn("Must provide FLASHBOTS_RELAY_SIGNING_KEY. Please see https://github.com/flashbots/pm/blob/main/guides/searcher-onboarding.md")
   process.exit(1)
 }
+
 
 const HEALTHCHECK_URL = process.env.HEALTHCHECK_URL || ""
 
@@ -52,17 +56,22 @@ async function main() {
     flashbotsProvider,
     new Contract(BUNDLE_EXECUTOR_ADDRESS, BUNDLE_EXECUTOR_ABI, provider) )
 
-  const markets = await UniswappyV2EthPair.getUniswapMarketsByToken(provider, FACTORY_ADDRESSES);
+  //const markets = await UniswappyV2EthPair.getUniswapMarketsByToken(provider, FACTORY_ADDRESSES);
+  //await fs.writeFile('markets.txt', JSON.stringify(markets));
+  const markets = JSON.parse(fs.readFileSync('markets.txt', 'utf8'));
+  
   provider.on('block', async (blockNumber) => {
     await UniswappyV2EthPair.updateReserves(provider, markets.allMarketPairs);
     const bestCrossedMarkets = await arbitrage.evaluateMarkets(markets.marketsByToken);
-    if (bestCrossedMarkets.length === 0) {
-      console.log("No crossed markets")
-      return
-    }
-    bestCrossedMarkets.forEach(Arbitrage.printCrossedMarket);
-    arbitrage.takeCrossedMarkets(bestCrossedMarkets, blockNumber, MINER_REWARD_PERCENTAGE).then(healthcheck).catch(console.error)
+    //await fs.writeFile('bestCrossedMarkets.txt', JSON.stringify(bestCrossedMarkets,null,2));
+    //if (bestCrossedMarkets.length === 0) {
+    //  console.log("No crossed markets")
+    //  return
+   // }
+   // bestCrossedMarkets.forEach(Arbitrage.printCrossedMarket);
+  //  arbitrage.takeCrossedMarkets(bestCrossedMarkets, blockNumber, MINER_REWARD_PERCENTAGE).then(healthcheck).catch(console.error)
   })
+ 
 }
 
 main();
